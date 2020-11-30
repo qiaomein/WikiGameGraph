@@ -65,11 +65,13 @@ class WikiGraph(object):
 
                     savedata(link, self.graph[link]) #save to json
 
+                    # check if destination is reached
+
                     if destination in self.graph[link]:
                         print(
                             f'Process finished with exit code 1: Breadth First Search Completed. Layers: {layer} Time: {round(time.time() - start_time, 3)}')
                         return
-                    elif destination == link:  # check if destination is reached
+                    elif destination == link:
                         print(f'Process finished with exit code 2: Breadth First Search Completed. Layers: {layer} Time: {round(time.time() - start_time, 3)}')
                         return
             s = queue.pop(0)
