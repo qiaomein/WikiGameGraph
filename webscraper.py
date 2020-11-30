@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
 import re
+import json
 
 WIKI_PREFIX = 'https://en.wikipedia.org'
 
@@ -26,7 +27,11 @@ def webscrape(url): #takes wiki url and returns set of all the links
     final_links = list(set(final_links)) #rid duplicates
     final_links.remove(f'{WIKI_PREFIX}/wiki/Main_Page') #rid unnecessary link
     # print(final_links,len(final_links))
-    return set(final_links)
+    return final_links
+
+# with open('wikidata.json') as jsonfile:
+#     jsondata = json.load(jsonfile)
+# print(len(webscrape(f'{WIKI_PREFIX}/wiki/stalin')),len(jsondata))
 
 # print(webscrape('https://en.wikipedia.org/wiki/stalin') == \
 # webscrape('https://en.wikipedia.org/wiki/Joseph_Stalin'))

@@ -1,34 +1,76 @@
-from webscraper import webscrape
+from webscraper import WIKI_PREFIX
 import time
+import json
+import os
+from bs4 import BeautifulSoup
+import requests
+import re
+
+
+FILENAME = 'wikidata.json'
 
 class WikiGraph(object):
     def __init__(self):
         self.graph = dict() #graph of keys:values where values are list types
+        self.visited = dict()
 
     def wiki_bfs(self, s, destination): #do BFS given source node as link and destination link
+        def savedata(s, links, filename = FILENAME):
+            try:
+                with open(filename) as savefile1:
+                    data = json.load(savefile1)
+                    data[s] = links
+                with open(filename, 'w') as savefile2:
+                    json.dump(data, savefile2, indent = 2)
+
+            except FileNotFoundError:
+                edata = {s : links}
+                with open(filename, 'w') as newsavefile:
+                        json.dump(edata, newsavefile, indent = 2)
+
         queue = []
-        visited = {s:True} #visited dictionary to track which nodes are visited
+        self.visited = {s:True} #visited dictionary to track which nodes are visited
         queue.append(s)
         self.addEdges(s)  #neighbor links of source_node
         start_time = time.time()
-        destination_tag = webscrape(destination)
+        destination_tag = self.webscrape(destination)
         flag = False
+        layer = 0
 
-        if destination_tag == self.graph[s]:
+        if set(destination_tag) == set(self.graph[s]):
             print('You are already on this page!')
             return
 
+        try:
+            with open(FILENAME) as jsonfile:
+                jsondata = json.load(jsonfile)
+        except FileNotFoundError:
+            print('Data file not found. Creating one...')
+
         while queue:
             # print(s)
-            print("Next Node")
+            print(f"Moving from layer {layer} to {layer + 1}...")
+            layer += 1
+
             for link in self.graph[s]: #each link in webscrape(s)   ##possible to refactor this into a map function?
-                if link not in visited: #hasn't been visited
+
+                if link not in self.visited: #hasn't been visited and not recorded
                     print(link)
-                    visited[link] = True
+                    self.visited[link] = True
                     queue.append(link)
-                    self.addEdges(link)
-                    if destination_tag == self.graph[link]:  # check if destination is reached
-                        print(f'Breadth First Search Completed. Time: {round(time.time() - start_time, 3)}')
+                    try:
+                        if link in jsondata:
+                            self.graph[link] = jsondata[link]
+                            print(f'Pulled from {FILENAME}')
+                        else:
+                            self.addEdges(link)
+                    except:
+                        self.addEdges(link)
+
+                    savedata(link, self.graph[link])
+
+                    if set(destination_tag) == set(self.graph[link]):  # check if destination is reached
+                        print(f'Breadth First Search Completed. Layers: {layer} Time: {round(time.time() - start_time, 3)}')
                         flag = True
                         break
             if flag:
@@ -36,4 +78,23 @@ class WikiGraph(object):
             s = queue.pop(0)
 
     def addEdges(self,p): #adds a neighborlink set from webscrape function v to page p
-        self.graph[p] = webscrape(p)
+        self.graph[p] = self.webscrape(p)
+
+    def webscrape(self, url):  # takes wiki url and returns set of all the links
+        source = requests.get(url).text
+        soup = BeautifulSoup(source, 'html.parser')
+        # print(soup.prettify())
+
+        links = soup.find_all('a', href=True)  # filter html for href links
+        # print(links)
+        final_links = []
+        for link in links:  # extract links with regex
+            linkregex = re.compile(r'href="(\w|/)+"')
+            final_link = linkregex.search(str(link))
+            if final_link is not None and final_link not in self.visited:
+                # print(final_link.group())
+                final_links.append(f'{WIKI_PREFIX}{final_link.group()[6:-1]}')
+        final_links = list(set(final_links))  # rid duplicates
+        final_links.remove(f'{WIKI_PREFIX}/wiki/Main_Page')  # rid unnecessary link
+        # print(final_links,len(final_links))
+        return final_links
