@@ -33,13 +33,7 @@ class WikiGraph(object):
         queue.append(s)
         self.addEdges(s)  #neighbor links of source_node
         start_time = time.time()
-        destination_tag = self.webscrape(destination)
-        flag = False
         layer = 0
-
-        if set(destination_tag) == set(self.graph[s]):
-            print('You are already on this page!')
-            return
 
         try:
             with open(FILENAME) as jsonfile:
@@ -48,8 +42,10 @@ class WikiGraph(object):
             print('Data file not found. Creating one...')
 
         while queue:
-            # print(s)
+            print('#' * 100)
+            print(s)
             print(f"Moving from layer {layer} to {layer + 1}...")
+            print('#' * 100)
             layer += 1
 
             for link in self.graph[s]: #each link in webscrape(s)   ##possible to refactor this into a map function?
@@ -67,14 +63,15 @@ class WikiGraph(object):
                     except:
                         self.addEdges(link)
 
-                    savedata(link, self.graph[link])
+                    savedata(link, self.graph[link]) #save to json
 
-                    if set(destination_tag) == set(self.graph[link]):  # check if destination is reached
-                        print(f'Breadth First Search Completed. Layers: {layer} Time: {round(time.time() - start_time, 3)}')
-                        flag = True
-                        break
-            if flag:
-                break
+                    if destination in self.graph[link]:
+                        print(
+                            f'Process finished with exit code 1: Breadth First Search Completed. Layers: {layer} Time: {round(time.time() - start_time, 3)}')
+                        return
+                    elif destination == link:  # check if destination is reached
+                        print(f'Process finished with exit code 2: Breadth First Search Completed. Layers: {layer} Time: {round(time.time() - start_time, 3)}')
+                        return
             s = queue.pop(0)
 
     def addEdges(self,p): #adds a neighborlink set from webscrape function v to page p
